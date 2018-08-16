@@ -140,6 +140,8 @@ table {
 
 
 body {
+  max-width: 1200px;
+  margin: 0 auto;
   background-color: #a5b71d;
   font-family: Arial, sans-serif;
 /*  background: white url(/static/bison-60592_1920.jpg) no-repeat center center fixed;
