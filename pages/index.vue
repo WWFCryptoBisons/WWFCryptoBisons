@@ -185,8 +185,8 @@ button {
 
 
 body {
-  background: white url(/static/bison-60592_1920.jpg) no-repeat center center fixed;
-  background-size: cover;
+/*  background: white url(/static/bison-60592_1920.jpg) no-repeat center center fixed;
+  background-size: cover; */
 }
 </style>
 
