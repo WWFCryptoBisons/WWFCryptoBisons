@@ -1,49 +1,158 @@
 <template>
-  <section class="container">
-    <div>
-      <app-logo/>
-      <h1 class="title">
-        Name a Bison
-      </h1>
+  <div class="outer-container">
+    <h1 class="title">
+      CryptoBisons: Name&nbsp;a&nbsp;Bison
+    </h1>
+    <section class="container">
       <h2 class="subtitle">
         WWF Crypto Bisons project by Blockchain Summer School 2018
       </h2>
-      <div>
-        <input type="text" placeholder="Choose a name..." name="name" 
-          @keyup="updateName" :value="name"/>
-      </div>
-      <div style="margin-top:20px">
-        <input type="text" placeholder="Choose ETH amount..." name="amount" 
-          @keyup="updateAmount" :value="amount"/>
-      </div>
-      <div style="margin-top:20px">
-        <button @click="voteForName">Vote for this name</button>
-      </div>
 
-      <div>
-        <h1>toplist</h1>
-        <table border="1" width="100%"> 
-          <thead>
-            <th>Votes</th>
-            <th>Proposed Name</th>
-          </thead>
-          <tbody>
-            <tr v-for="result in arrTopList" :key="result.name">
-              <th>{{result.displayAmount}}</th>
-              <td>{{result.name}}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="content">
+        <div class="form">
+          <p>Please type in the name you like best:</p>
+          <input type="text" placeholder="Name?" name="name" 
+            @keyup="updateName" :value="name"/>
+          <p>Please select the amount you want to donate for this name:</p>
+          <input type="range" min="1" :max="balance" :value="amount" @change="updateAmount">
+          <div>
+            <strong>{{prettyAmount}}</strong>
+            <div v-if="prettyBalance">available balance: {{prettyBalance}}</div>
+          </div>
+          <button @click="voteForName">Vote for this name</button>
+        </div>
+      
+        <div class="toplist">
+          <h1>Toplist</h1>
+          <ol>
+            <li v-for="result in arrTopList" :key="result.name">
+              <b>{{result.name}}</b><br/>
+              <pre>{{result.displayAmount}}</pre>
+            </li>
+          </ol>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
 </template>
+
+<style>
+.outer-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.toplist {
+  margin-top: 50px;
+}
+
+.container {
+  /*align-items: center;*/
+  text-align: center;
+  background-color: white;
+  margin: 20px;
+  /*width: 100%;*/
+}
+
+.container h1 {
+  text-align: left;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.content {
+  /*margin-top: 50px;*/
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /*min-height: 100vh;*/
+  padding: 20px;
+}
+
+input[type=text] {
+  font-size: 40px;
+  padding: 20px;
+  max-width: 100%;
+}
+
+button {
+  font-size: 40px;
+  padding: 20px;
+}
+
+.title {
+  /*font-family: "Quicksand", "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* 1 */*/
+  display: block;
+  font-weight: bold;
+  font-size: 8vh;
+  color: white;
+  letter-spacing: 1px;
+  margin-left: 20px;
+  margin-top: 30px;
+}
+
+ol {
+  justify-content: left;
+  text-align: left;
+}
+li pre{
+  word-wrap: break-word !important;
+  text-align: right;
+}
+li {
+  font-size: 30px;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.form > * {
+  margin-bottom: 20px;
+}
+
+.form p {
+  text-align: left;
+}
+
+.subtitle {
+  font-weight: bold;
+  text-transform: uppercase;
+  padding: 20px;
+  text-align: left;
+  color: #a5b71d;
+  font-size: 42px;
+  /*color: #526488;*/
+  word-spacing: 5px;
+  padding-bottom: 15px;
+}
+
+.links {
+  padding-top: 15px;
+}
+
+table {
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+
+body {
+  background-color: #a5b71d;
+  font-family: Arial, sans-serif;
+/*  background: white url(/static/bison-60592_1920.jpg) no-repeat center center fixed;
+  background-size: cover; */
+}
+</style>
+
 
 <script>
 import AppLogo from '~/components/AppLogo.vue'
 import _ from 'lodash';
 var Web3 = require("web3");
-var millify = require("millify");
+var ethtools = require("ethtools");
 
 // var wwfcryptobisons = wwfcryptobisonsContract.new(
 //    {
@@ -56,6 +165,8 @@ var millify = require("millify");
 //          console.log('Contract mined! address: ' + contract.address + ' transactionHash: ' + contract.transactionHash);
 //     }
 //  })
+
+import BigNumber from 'bignumber.js';
 
 var wwfcryptobisonsContractInstance;
 
@@ -74,7 +185,13 @@ export default {
         throw e;
       }
 
-      self.accounts = accounts
+      self.accounts = accounts;
+      web3.eth.getBalance(accounts[0]).then(function (balance) {
+        console.log("balance", balance);
+        // self.balance = new BigNumber(balance);
+        self.prettyBalance = ethtools.formatBalance(balance)
+        self.balance = balance;
+      });
     });
 
     wwfcryptobisonsContractInstance.methods.getVotes().call().then((results) => {
@@ -89,17 +206,19 @@ export default {
           decodedName = web3.utils.hexToUtf8(decodedName);
         } catch(e) {
           // do nothing
+          return;
         }
 
-        var amount = parseInt(results[1][i], 10);
+        var amount = results[1][i];
 
         arrTopList.push({
           name: decodedName,
           amount,
-          displayAmount: millify(amount)
+          displayAmount: ethtools.formatBalance(amount)
         });
       });
-
+      
+      console.log("arrTopList", arrTopList)
       self.arrTopList = _.orderBy(arrTopList, ["amount"], ["desc"]);
 
     });
@@ -109,11 +228,31 @@ export default {
       this.name = e.target.value;
     },
     updateAmount (e) {
-      this.amount = e.target.value;
+      var newAmount = e.target.value;
+      console.log("newAmount", newAmount);
+      
+      this.amount = newAmount;
+
+      if (newAmount == 1) {
+        // bugfix for shitty pretty printing lib
+        this.prettyAmount = "1 wei";
+      } else {
+        this.prettyAmount = ethtools.formatBalance(new BigNumber(newAmount));
+      }
     },
     voteForName: function(e) {
       if (this.accounts.length === 0) {
         alert("no eth account available, is your metamask running?");
+        return;
+      }
+
+      if (this.amount < 1) {
+        alert("amount is less than 1");
+        return;
+      }
+
+      if (!this.name) {
+        alert("please type in a name");
         return;
       }
 
@@ -124,69 +263,23 @@ export default {
 
       wwfcryptobisonsContractInstance.methods.voteForName(web3.utils.utf8ToHex(this.name)).send({
         from: this.accounts[0],
-        value: this.amount
+        value: new BigNumber(this.amount)
       }).then((result) => console.log(result));
     }
   },
   components: {
     AppLogo
   },
-  async asyncData({ query, env }) {     
+  data() {     
     return {
       accounts: [],
-      name: "my name",
-      amount: "100000000",
+      name: "",
+      amount: 0,
+      balance: 0,
+      prettyBalance: "",
+      prettyAmount: "nothing",
       arrTopList: []
     }
   }
 }
 </script>
-
-<style>
-.container {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  /*align-items: center;*/
-  padding-top: 50px;
-  text-align: center;
-}
-
-input[type=text] {
-  font-size: 40px;
-  padding: 20px;
-}
-
-button {
-  font-size: 40px;
-  padding: 20px;
-}
-
-.title {
-  font-family: "Quicksand", "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* 1 */
-  display: block;
-  font-weight: 300;
-  font-size: 100px;
-  color: #35495e;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-weight: 300;
-  font-size: 42px;
-  color: #526488;
-  word-spacing: 5px;
-  padding-bottom: 15px;
-}
-
-.links {
-  padding-top: 15px;
-}
-
-
-body {
-/*  background: white url(/static/bison-60592_1920.jpg) no-repeat center center fixed;
-  background-size: cover; */
-}
-</style>
-

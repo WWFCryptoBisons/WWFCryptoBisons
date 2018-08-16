@@ -13,8 +13,8 @@
     "precommit": "npm run lint"
   },
   "dependencies": {
+    "ethtools": "0.0.10",
     "lodash": "^4.17.10",
-    "millify": "^2.0.1",
     "nuxt": "^1.0.0",
     "scrypt": "^6.0.3",
     "vue-web3": "^2.0.0",
